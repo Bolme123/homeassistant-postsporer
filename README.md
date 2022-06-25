@@ -16,7 +16,9 @@ Cheers
   Parameter | Forklaring
 ------------- | -------------------------
 POSTNORD_COOKIE | Session-ID fra innlogget Postnord-økt 
-  Du må hent Session-ID for Postnord manuelt.
+POSTEN_CREDENTIALS | liste med mobilnr/passord til Posten.no
+
+Du må hent Session-ID for Postnord manuelt.
   
   Deretter, Åpne apps.yaml 
   ##### eksempel apps.yaml
@@ -29,7 +31,7 @@ homeassistant-postsporer:
     - "Password" # Passord for nevnt konto
   POSTNORD_COOKIE: !secret POSTNORDCOOKIE # Laravel-cookie tilhørende Postnord
   ```
-# NOTE
+#### NOTE
 Session ID'en fra PostNord endrer seg kontinuerlig, så etter programmet har 'brukt' cookien oppe så vil programmet videre bruke en cachet fil i /.cache/POSTNORD.
 Skulle du trenge å bruke cookien satt i Apps.yaml igjen så gjør du slik
 * Gå til /.cache/conf
