@@ -15,34 +15,26 @@ Cheers
   Programmet tar i bruk 2 parameter
   Parameter | Forklaring
 ------------- | -------------------------
-POSTEN_COOKIE | Session-ID fra innlogget Posten-økt
-POSTNORD_COOKIE | Session-ID fra innlogget Postnord-økt
- 
-
+POSTNORD_COOKIE | Session-ID fra innlogget Postnord-økt 
+  Du må hent Session-ID for Postnord manuelt.
   
-  Du må hent Session-ID manuelt. (Postman funke fjell t d)
-  
-  Cookies kan legges inn i apps.yaml i appdaemon/apps.
-  
-  Om du har satt opp Postman vil æ anbefal å bruk det t å hent session-ID
-  
-  ##### Hent session-ID gjennom Postman
-  1. fang HTTP-forespørseln der du logge inn på Posten/Postnord
-      * Pass på at "Capture Cookies" e valgt
-  3. Klikk på "code" i øvre høyre hjørne i Postman.
-  4. Velg "Python - Requests" fra dropdown-menyen
-  5. i Headers-ordboka, kopier alt fra og med "Cookie" helt ned t klemmeparantesen
-
   Deretter, Åpne apps.yaml 
   ##### eksempel apps.yaml
   ```yaml
-  homeassistant-postsporer:
-    module: postsporer
-    class: Get_Shit
-    POSTEN_COOKIE: ''
-    POSTNORD_COOKIE: "laravel_session="
+homeassistant-postsporer:
+  module: postsporer
+  class: Get_Shit
+  POSTEN_CREDENTIALS: 
+    - 40294827 # Registrert mobilnr for Posten-konto
+    - "Password" # Passord for nevnt konto
+  POSTNORD_COOKIE: !secret POSTNORDCOOKIE # Laravel-cookie tilhørende Postnord
   ```
-
+# NOTE
+Session ID'en fra PostNord endrer seg kontinuerlig, så etter programmet har 'brukt' cookien oppe så vil programmet videre bruke en cachet fil i /.cache/POSTNORD.
+Skulle du trenge å bruke cookien satt i Apps.yaml igjen så gjør du slik
+* Gå til /.cache/conf
+* Slett alt, skriv deretter false
+   
 
 ### TO DO
 * Lægg t støtte for flere postsporingsystem 
@@ -57,7 +49,6 @@ POSTNORD_COOKIE | Session-ID fra innlogget Postnord-økt
 
 
 ### Bugs
- * Session-ID fra posten trenger å fornyes for ofte for å være praktisk 
  * Om en endrer leveringsmetode på PostNord midt i sendingen kan det komme to identiske pakker
 
 
