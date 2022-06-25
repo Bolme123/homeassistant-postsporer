@@ -3,19 +3,18 @@ import appdaemon.plugins.hass.hassapi as hass
 from modules.postSpor import pakkeSpor
 import ha_version
 from modules.vars import *
-class Get_Shit(hass.Hass): # Deklarerer egenskaper for klassen.
 
+class Get_Shit(hass.Hass): # Deklarerer egenskaper for klassen.
     def initialize(self):
         self.log(
             f"🚨 Launching Get_Shit {ha_version.__version__}",
             ascii_encode=False,
         )
-        self.POSTEN_COOKIE = self.args["POSTEN_COOKIE"]
-        self.POSTNORD_COOKIE = self.args["POSTNORD_COOKIE"]
-        self.cookie_dict = {
-                            "posten": self.POSTEN_COOKIE,
-                            "postnord": self.POSTNORD_COOKIE
-        }
+
+        print(self.args)
+        if self.args.get('POSTEN_CREDENTIALS'):
+            self.POSTEN_CREDENTIALS = self.args["POSTEN_CREDENTIALS"]
+            print(self.POSTEN_CREDENTIALS)
         self.data = None
         self.ps = None
         self.total_pakker = None
@@ -30,7 +29,7 @@ class Get_Shit(hass.Hass): # Deklarerer egenskaper for klassen.
         Sjekk etter navnevalg om nåværende kalkulert navn allerede eksisterer i listen, 
         isåfall legg til et tall i navn og sjekk igjen
         """
-        
+    
     def postSensor(self):
         name = ""
         ignoreKeys = ["antall_pakker", "posten", "postnord"]
@@ -91,7 +90,9 @@ class Get_Shit(hass.Hass): # Deklarerer egenskaper for klassen.
 
         
     def getData(self):
-        self.ps = pakkeSpor(self.cookie_dict)
+        
+        self.ps = pakkeSpor(postenCredentials=self.POSTEN_CREDENTIALS,
+                            postnordSecret=self.args.get("POSTNORD_COOKIE"))
         self.data = self.ps.data
         self.log(
                 f"🚨 data:  "+ str(self.data),

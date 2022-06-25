@@ -35,46 +35,20 @@ TO DO
 
 """
 
-from threading import local
-
-from matplotlib.pyplot import get
+from modules.postnord import postnordManager
 from modules.vars import *
 from modules.posten import postenPakke
-if not HASSIO: 
-    import traceback, sys 
-else: 
-    pass
 import requests
 import appdaemon.plugins.hass.hassapi as hass
 
 class pakkeSpor(hass.Hass):
-    def __init__(self,cookie_dict, run = False):
-        self.cookie_dict = cookie_dict
+    def __init__(self, run = False,postenCredentials=None,postnordSecret = None):
         self.data = None
+        self.postenCredentials = postenCredentials
+        self.postnordSecret = postnordSecret
         self.combiner()
 
-    def cookieParse(self,cookie, cookiedomain, session: requests.Session ,post_tjeneste):
-        if not HASSIO:
-            dump = cookie[COOKIE].split(";")
-        # print(dump)
-        else:
-            dump = cookie.split(";")
-        if post_tjeneste == POSTEN:
-            for k in dump:
-                # Deler opp listen nok en gang etter første =-tegn
-                split = k.strip(" ").split("=", maxsplit=1)
-
-                cookiename, cookievalue = split[0], split[1]
-                session.cookies.set(cookiename,
-                                    cookievalue,
-                                    domain=cookiedomain)  # Setter cookies. Skal være Session-ID fra en pålogga session.
-        elif post_tjeneste == POSTNORD:
-            with open(PROJECT_DIR+"/const/POSTNORD","r") as f:
-                localCookie = f.read()
-                session.cookies.set("laravel_session",localCookie,domain="my.postnord.no")
-
     def combiner(self):  # Kombinerer pakkene fra postnord og posten
-
         motherload = {}
         total_pakker = 0
         combolist = []
@@ -82,7 +56,6 @@ class pakkeSpor(hass.Hass):
             try:
                 motherload[carrier] = self.parseShipment(carrier)
                 total_pakker = motherload[carrier][ANTALL_PAKKER] + total_pakker
-
             except Exception as e:
                 print(e)
                 continue
@@ -92,44 +65,21 @@ class pakkeSpor(hass.Hass):
             self.data = motherload #eturnerer
         else:
             self.data = motherload
-
-
+            
     def fetchShipment(self,post_tjeneste):
-        def getCredentials():
-            with open(f"{PROJECT_DIR}/const/CREDENTIAL","r") as f:
-                return f.read().split("\n")
-            
-        s = requests.session()
-        if not HASSIO:
-            sCookie = self.cookie_dict[post_tjeneste][COOKIE]
-        else:
-            sCookie = self.cookie_dict[post_tjeneste]
-            
-        self.cookieParse(
-            self.cookie_dict[post_tjeneste], COOKIE_DOMAIN[post_tjeneste], s,post_tjeneste
-        )
-        if post_tjeneste != POSTEN:
-      #  r = s.get((POSTEN_URL if post_tjeneste == POSTEN else POSTNORD_URL))
-            r = s.get(POSTNORD_URL)
-            with open(f"{PROJECT_DIR}/const/POSTNORD","w") as f:
-                f.write(r.cookies.get(name="laravel_session"))
-            with open(f"{PROJECT_DIR}/JSONDUMP","w") as f:
-                f.write(str(r.json()))
-            response = r.json()
-        else: 
-            response = True
-
-        if not response:  # Hvis det ikke er noe å hente, ferdig. sender 0 til å behandle i update-objektet
-            return None
-        else:
-            # antall indekser i response tilsvarer antall pakker på vei
-            if post_tjeneste == POSTNORD:
-                root = response[TO]; antall = len(root)
-                return antall,root
-            else:
-                creds = getCredentials()
-                root = postenPakke(creds[0],creds[1]).hentaData[(ARCHIVED if not RECEIVING else RECEIVE)]; antall = len(root)
-                return antall, root
+        if post_tjeneste == POSTNORD:
+            postNord = postnordManager(self.postnordSecret)
+            response = postNord.main()
+            try: 
+                pakker = response[TO]; antall = len(pakker)
+            except Exception as e:
+                print("postSpor.py, inside fetchShipment()",e)
+                return None
+        elif post_tjeneste == POSTEN:
+            pp = postenPakke(*self.postenCredentials).authenticate_and_get()
+            pakker =pp[(ARCHIVED if not RECEIVING else RECEIVE)]
+            antall = len(pakker)
+        return antall, pakker
 
     def parseShipment(self,carrier):  # Returnerer sender, siste_oppdatering, ankomstdato, antall pakker
         # Lokale variabla for å lagre forskjellig shit
